@@ -82,7 +82,7 @@ while (true) {
     decideAction(state)
 
     // in the first league: BREW <id> | WAIT; later: BREW <id> | CAST <id> [<times>] | LEARN <id> | REST | WAIT
-    
+
 }
 
 function debug(content) {
@@ -101,7 +101,7 @@ function sendRest() {
     send('REST')
 }
 
-function sendBrewCast(action){
+function sendBrewCast(action) {
     send(`${action.actionType} ${action.actionId}`)
 }
 
@@ -116,28 +116,33 @@ function score(action) {
  * @param {Action} action 
  */
 function canBuy(state, action) {
+    let countInv = sum(state.myInventory)
+
     switch (action.actionType) {
         case 'OPPONENT_CAST':
             return false
         case 'CAST':
-            return action.castable && ((action.deltas[0] + state.myInventory[0] >= 0) &&
-                (action.deltas[1] + state.myInventory[1] >= 0) &&
-                (action.deltas[2] + state.myInventory[2] >= 0) &&
-                (action.deltas[3] + state.myInventory[3] >= 0))
+            {
+                let countDeltas = sum(action.deltas)
+                let enoughSpace = countInv + countDeltas <= 10
+                let enoughInv = (action.deltas[0] + state.myInventory[0] >= 0) &&
+                    (action.deltas[1] + state.myInventory[1] >= 0) &&
+                    (action.deltas[2] + state.myInventory[2] >= 0) &&
+                    (action.deltas[3] + state.myInventory[3] >= 0)
+                return action.castable && enoughInv && enoughSpace
+            }
         case 'BREW':
-            return (action.deltas[0] + state.myInventory[0] >= 0) &&
-                (action.deltas[1] + state.myInventory[1] >= 0) &&
-                (action.deltas[2] + state.myInventory[2] >= 0) &&
-                (action.deltas[3] + state.myInventory[3] >= 0)
+            {
+                let countDeltas = sum(action.deltas)
+                let enoughSpace = countInv + countDeltas <= 10
+                let enoughInv = (action.deltas[0] + state.myInventory[0] >= 0) &&
+                    (action.deltas[1] + state.myInventory[1] >= 0) &&
+                    (action.deltas[2] + state.myInventory[2] >= 0) &&
+                    (action.deltas[3] + state.myInventory[3] >= 0)
+                return enoughInv && enoughSpace
+            }
     }
 
-}
-
-function scoreExhaustedCast(action) {
-    return (action.deltas[0] < 0 ? -action.deltas[0] : 0) +
-    (action.deltas[1] < 0 ? -action.deltas[1] : 0) +
-    (action.deltas[2] < 0 ? -action.deltas[2] : 0) +
-    (action.deltas[3] < 0 ? -action.deltas[3] : 0)
 }
 
 /**
@@ -160,7 +165,7 @@ function decideAction(s) {
         sendBrewCast(sorted[0][0])
     } else {
         let castsExhausted = s.actions.filter(a => a.actionType == 'CAST' && !a.castable)
-        if(castsExhausted.length > 0){
+        if (castsExhausted.length > 0) {
             sendRest()
         } else {
             sendWait()
