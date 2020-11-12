@@ -1,6 +1,6 @@
 /*global readline*/
 
-const INV_WEIGHTS = [1, 2, 3, 4]
+const INV_WEIGHTS = [1, 1, 1, 1]
 
 class State {
     constructor(actions, myInventory, opponentInventory, myScore, opponentScore) {
@@ -79,10 +79,10 @@ while (true) {
     // Write an action using console.log()
     // To debug: console.error('Debug messages...');
 
-    let action = decideAction(state)
+    decideAction(state)
 
     // in the first league: BREW <id> | WAIT; later: BREW <id> | CAST <id> [<times>] | LEARN <id> | REST | WAIT
-    send(`${action.actionType} ${action.actionId}`);
+    
 }
 
 function debug(content) {
@@ -91,6 +91,18 @@ function debug(content) {
 
 function send(output) {
     console.log(output)
+}
+
+function sendWait() {
+    send('WAIT')
+}
+
+function sendRest() {
+    send('REST')
+}
+
+function sendBrewCast(action){
+    send(`${action.actionType} ${action.actionId}`)
 }
 
 function score(action) {
@@ -121,6 +133,13 @@ function canBuy(state, action) {
 
 }
 
+function scoreExhaustedCast(action) {
+    return (action.deltas[0] < 0 ? -action.deltas[0] : 0) +
+    (action.deltas[1] < 0 ? -action.deltas[1] : 0) +
+    (action.deltas[2] < 0 ? -action.deltas[2] : 0) +
+    (action.deltas[3] < 0 ? -action.deltas[3] : 0)
+}
+
 /**
  * 
  * @param {State} s 
@@ -128,14 +147,25 @@ function canBuy(state, action) {
 function decideAction(s) {
     debug("state")
     debug(s)
-    debug("buyable")
     let buyable = [...s.actions].filter(a => canBuy(s, a))
+    debug("buyable")
     debug(buyable)
-    let sorted = buyable
-        .map(a => [a, score(a)])
-        .sort((a, b) => b[1] - a[1])
-    debug(sorted)
-    return sorted[0][0]
+
+    if (buyable.length > 0) {
+        let sorted = buyable
+            .map(a => [a, score(a)])
+            .sort((a, b) => b[1] - a[1])
+        debug("sorted")
+        debug(sorted)
+        sendBrewCast(sorted[0][0])
+    } else {
+        let castsExhausted = s.actions.filter(a => a.actionType == 'CAST' && !a.castable)
+        if(castsExhausted.length > 0){
+            sendRest()
+        } else {
+            sendWait()
+        }
+    }
 }
 
 function range(n) {
