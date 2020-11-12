@@ -141,6 +141,8 @@ function canBuy(state, action) {
                     (action.deltas[3] + state.myInventory[3] >= 0)
                 return enoughInv && enoughSpace
             }
+        case 'LEARN':
+            return false
     }
 
 }
@@ -153,16 +155,19 @@ function decideAction(s) {
     // debug("state")
     // debug(s)
     let buyable = [...s.actions]
-        .filter(a => canBuy(s, a) && (!(a.actionType == 'CAST') || atLeastOneInvIsUseful(s,a)))
-    // debug("buyable")
-    // debug(buyable)
+        .filter(a => canBuy(s, a))
+    debug("buyable")
+    debug(buyable)
+    let buyableAnduseful = buyable
+        .filter(a => (a.actionType != 'CAST' || atLeastOneInvIsUseful(s,a)))
+    debug("buyableAnduseful")
+    debug(buyableAnduseful)
 
-    if (buyable.length > 0) {
-        let sorted = buyable
+    if (buyableAnduseful.length > 0) {
+        let sorted = buyableAnduseful
             .map(a => [a, score(a)])
             .sort((a, b) => b[1] - a[1])
-        // debug("sorted")
-        // debug(sorted)
+        debug("brew by score")
         sendBrewCast(sorted[0][0])
     } else {
         let castsExhausted = s.actions.filter(a => a.actionType == 'CAST' && !a.castable)
@@ -172,6 +177,7 @@ function decideAction(s) {
             let castCanBuy = s.actions.filter(a => canBuy(s,a) && a.actionType == 'CAST')
             if(castCanBuy.length > 0){
                 let found = randomInArray(castCanBuy)
+                debug("brew random")
                 sendBrewCast(found)
             } else {
                 sendWait()
@@ -200,7 +206,7 @@ function sum(arr) {
 function atLeastOneInvIsUseful(state, cast) {
     return INV_WEIGHTS.some((w, i) =>
         cast.deltas[i] > 0 && state.actions.some(a =>
-            state.myInventory[i] < a.deltas[i]
+            a.actionType == 'BREW' && a.deltas[i] < 0 && state.myInventory[i] < (-a.deltas[i])
         )
     )
 }
