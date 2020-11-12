@@ -94,12 +94,44 @@ function send(output) {
 }
 
 function score(action) {
-    let cost = sum(INV_WEIGHTS.map((w, i) => w * -action.deltas[i]))
+    let cost = sum(INV_WEIGHTS.map((w, i) => w * action.deltas[i]))
     return action.price / cost
 }
 
-function decideAction(state) {
-    let sorted = [...state.actions]
+/**
+ * 
+ * @param {State} state 
+ * @param {Action} action 
+ */
+function canBuy(state, action) {
+    switch (action.actionType) {
+        case 'OPPONENT_CAST':
+            return false
+        case 'CAST':
+            return action.castable && ((action.deltas[0] >= 0 || (action.deltas[0] + state.myInventory[0] >= 0)) &&
+                (action.deltas[1] >= 0 || (action.deltas[1] + state.myInventory[1] >= 0)) &&
+                (action.deltas[2] >= 0 || (action.deltas[2] + state.myInventory[2] >= 0)) &&
+                (action.deltas[3] >= 0 || (action.deltas[3] + state.myInventory[3] >= 0)))
+        case 'BREW':
+            return (action.deltas[0] >= 0 || (action.deltas[0] + state.myInventory[0] >= 0)) &&
+                (action.deltas[1] >= 0 || (action.deltas[1] + state.myInventory[1] >= 0)) &&
+                (action.deltas[2] >= 0 || (action.deltas[2] + state.myInventory[2] >= 0)) &&
+                (action.deltas[3] >= 0 || (action.deltas[3] + state.myInventory[3] >= 0))
+    }
+
+}
+
+/**
+ * 
+ * @param {State} s 
+ */
+function decideAction(s) {
+    debug("state")
+    debug(s)
+    debug("buyable")
+    let buyable = [...s.actions].filter(a => canBuy(s, a))
+    debug(buyable)
+    let sorted = buyable
         .map(a => [a, score(a)])
         .sort((a, b) => b[1] - a[1])
     debug(sorted)
