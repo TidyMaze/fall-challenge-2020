@@ -152,7 +152,8 @@ function canBuy(state, action) {
 function decideAction(s) {
     debug("state")
     debug(s)
-    let buyable = [...s.actions].filter(a => canBuy(s, a))
+    let buyable = [...s.actions]
+        .filter(a => canBuy(s, a) && (!(a.actionType == 'CAST') || atLeastOneInvIsUseful(s,a)))
     debug("buyable")
     debug(buyable)
 
@@ -168,9 +169,19 @@ function decideAction(s) {
         if (castsExhausted.length > 0) {
             sendRest()
         } else {
-            sendWait()
+            let castCanBuy = s.actions.filter(a => canBuy(s,a) && a.actionType == 'CAST')
+            if(castCanBuy.length > 0){
+                let found = randomInArray(castCanBuy)
+                sendBrewCast(found)
+            } else {
+                sendWait()
+            }
         }
     }
+}
+
+function randomInArray(array) {
+    return array[Math.floor(Math.random() * array.length)]
 }
 
 function range(n) {
@@ -179,4 +190,17 @@ function range(n) {
 
 function sum(arr) {
     return arr.reduce((a, c) => a + c, 0)
+}
+
+/**
+ * 
+ * @param {State} state 
+ * @param {Action} cast 
+ */
+function atLeastOneInvIsUseful(state, cast) {
+    return INV_WEIGHTS.some((w, i) =>
+        cast.deltas[i] > 0 && state.actions.some(a =>
+            state.myInventory[i] < a.deltas[i]
+        )
+    )
 }
