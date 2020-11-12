@@ -108,15 +108,15 @@ function canBuy(state, action) {
         case 'OPPONENT_CAST':
             return false
         case 'CAST':
-            return action.castable && ((action.deltas[0] >= 0 || (action.deltas[0] + state.myInventory[0] >= 0)) &&
-                (action.deltas[1] >= 0 || (action.deltas[1] + state.myInventory[1] >= 0)) &&
-                (action.deltas[2] >= 0 || (action.deltas[2] + state.myInventory[2] >= 0)) &&
-                (action.deltas[3] >= 0 || (action.deltas[3] + state.myInventory[3] >= 0)))
+            return action.castable && ((action.deltas[0] + state.myInventory[0] >= 0) &&
+                (action.deltas[1] + state.myInventory[1] >= 0) &&
+                (action.deltas[2] + state.myInventory[2] >= 0) &&
+                (action.deltas[3] + state.myInventory[3] >= 0))
         case 'BREW':
-            return (action.deltas[0] >= 0 || (action.deltas[0] + state.myInventory[0] >= 0)) &&
-                (action.deltas[1] >= 0 || (action.deltas[1] + state.myInventory[1] >= 0)) &&
-                (action.deltas[2] >= 0 || (action.deltas[2] + state.myInventory[2] >= 0)) &&
-                (action.deltas[3] >= 0 || (action.deltas[3] + state.myInventory[3] >= 0))
+            return (action.deltas[0] + state.myInventory[0] >= 0) &&
+                (action.deltas[1] + state.myInventory[1] >= 0) &&
+                (action.deltas[2] + state.myInventory[2] >= 0) &&
+                (action.deltas[3] + state.myInventory[3] >= 0)
     }
 
 }
