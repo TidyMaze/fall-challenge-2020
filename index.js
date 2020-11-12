@@ -1,6 +1,6 @@
 /*global readline*/
 
-const INV_WEIGHTS = [1, 2, 3, 4]
+const INV_WEIGHTS = [1, 1, 1, 1]
 
 class State {
     constructor(actions, myInventory, opponentInventory, myScore, opponentScore) {
@@ -107,7 +107,7 @@ function sendBrewCast(action) {
 
 function score(action) {
     let cost = sum(INV_WEIGHTS.map((w, i) => w * action.deltas[i]))
-    return action.price / cost
+    return (action.actionType == 'BREW' ? 1000 : 0) + action.price / cost
 }
 
 /**
