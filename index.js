@@ -1,6 +1,6 @@
 /*global readline*/
 
-const INV_WEIGHTS = [1, 1, 1, 1]
+const INV_WEIGHTS = [1, 2, 3, 4]
 
 class State {
     constructor(actions, myInventory, opponentInventory, myScore, opponentScore) {
@@ -150,19 +150,19 @@ function canBuy(state, action) {
  * @param {State} s 
  */
 function decideAction(s) {
-    debug("state")
-    debug(s)
+    // debug("state")
+    // debug(s)
     let buyable = [...s.actions]
         .filter(a => canBuy(s, a) && (!(a.actionType == 'CAST') || atLeastOneInvIsUseful(s,a)))
-    debug("buyable")
-    debug(buyable)
+    // debug("buyable")
+    // debug(buyable)
 
     if (buyable.length > 0) {
         let sorted = buyable
             .map(a => [a, score(a)])
             .sort((a, b) => b[1] - a[1])
-        debug("sorted")
-        debug(sorted)
+        // debug("sorted")
+        // debug(sorted)
         sendBrewCast(sorted[0][0])
     } else {
         let castsExhausted = s.actions.filter(a => a.actionType == 'CAST' && !a.castable)
