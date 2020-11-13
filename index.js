@@ -166,13 +166,13 @@ function decideAction(s) {
 
     let someIsUseful = buyable.some(a => a.actionType == 'CAST' && atLeastOneInvIsUseful(s, a))
 
+    let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
+
     let buyableAndUseful = buyable.filter(a =>
-        (a.actionType != 'CAST' || !someIsUseful || atLeastOneInvIsUseful(s, a))
+        (a.actionType != 'CAST' || (!someIsUseful && !canRest) || atLeastOneInvIsUseful(s, a))
     )
 
     let picked = randomInArray(buyableAndUseful)
-
-    let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
 
     if (picked && (picked.actionType == 'CAST' || picked.actionType == 'BREW')) {
         sendBrewCast(picked)
