@@ -2,26 +2,26 @@
 
 const INV_WEIGHTS = [1, 1, 1, 1]
 
-class State {
-    constructor(actions, myInventory, opponentInventory, myScore, opponentScore) {
-        this.actions = actions
-        this.myInventory = myInventory
-        this.opponentInventory = opponentInventory
-        this.myScore = myScore
-        this.opponentScore = opponentScore
+function newState(actions, myInventory, opponentInventory, myScore, opponentScore) {
+    return {
+        actions: actions,
+        myInventory: myInventory,
+        opponentInventory: opponentInventory,
+        myScore: myScore,
+        opponentScore: opponentScore
     }
 }
 
-class Action {
-    constructor(actionId, actionType, deltas, price, tomeIndex, taxCount, castable, repeatable) {
-        this.actionId = actionId
-        this.actionType = actionType
-        this.deltas = deltas
-        this.price = price
-        this.tomeIndex = tomeIndex
-        this.taxCount = taxCount
-        this.castable = castable
-        this.repeatable = repeatable
+function newAction(actionId, actionType, deltas, price, tomeIndex, taxCount, castable, repeatable) {
+    return {
+        actionId: actionId,
+        actionType: actionType,
+        deltas: deltas,
+        price: price,
+        tomeIndex: tomeIndex,
+        taxCount: taxCount,
+        castable: castable,
+        repeatable: repeatable
     }
 }
 
@@ -43,7 +43,7 @@ while (true) {
         const taxCount = parseInt(inputs[8]); // in the first two leagues: always 0; later: the amount of taxed tier-0 ingredients you gain from learning this spell
         const castable = inputs[9] !== '0'; // in the first league: always 0; later: 1 if this is a castable player spell
         const repeatable = inputs[10] !== '0'; // for the first two leagues: always 0; later: 1 if this is a repeatable player spell
-        actions.push(new Action(actionId, actionType, [delta0, delta1, delta2, delta3], price, tomeIndex, taxCount, castable, repeatable))
+        actions.push(newAction(actionId, actionType, [delta0, delta1, delta2, delta3], price, tomeIndex, taxCount, castable, repeatable))
     }
 
     let myInventory
@@ -72,7 +72,7 @@ while (true) {
 
     }
 
-    let state = new State(actions, myInventory, opponentInventory, myScore, opponentScore)
+    let state = newState(actions, myInventory, opponentInventory, myScore, opponentScore)
 
     // debug(state)
 
@@ -149,41 +149,53 @@ function canBuy(state, action) {
 
 /**
  * 
- * @param {State} s 
+ * @param {Object} s 
+ */
+function getAllValidActions(s) {
+    return [...s.actions].filter(a => canBuy(s, a))
+}
+
+/**
+ * 
+ * @param {Object} s 
  */
 function decideAction(s) {
-    // debug("state")
-    // debug(s)
-    let buyable = [...s.actions]
-        .filter(a => canBuy(s, a))
-    debug("buyable")
-    debug(buyable)
-    let buyableAnduseful = buyable
-        .filter(a => (a.actionType != 'CAST' || atLeastOneInvIsUseful(s,a)))
-    debug("buyableAnduseful")
-    debug(buyableAnduseful)
+    let buyable = getAllValidActions(s)
 
-    if (buyableAnduseful.length > 0) {
-        let sorted = buyableAnduseful
-            .map(a => [a, score(a)])
-            .sort((a, b) => b[1] - a[1])
-        debug("brew by score")
-        sendBrewCast(sorted[0][0])
+    // let allNewStates = buyable.map(a => playAction(s,a))
+
+    let someIsUseful = buyable.some(a => a.actionType == 'CAST' && atLeastOneInvIsUseful(s, a))
+
+    let buyableAndUseful = buyable.filter(a =>
+        (a.actionType != 'CAST' || !someIsUseful || atLeastOneInvIsUseful(s, a))
+    )
+
+    let picked = randomInArray(buyableAndUseful)
+
+    let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
+
+    if (picked && (picked.actionType == 'CAST' || picked.actionType == 'BREW')) {
+        sendBrewCast(picked)
+    } else if (canRest) {
+        sendRest()
     } else {
-        let castsExhausted = s.actions.filter(a => a.actionType == 'CAST' && !a.castable)
-        if (castsExhausted.length > 0) {
-            sendRest()
-        } else {
-            let castCanBuy = s.actions.filter(a => canBuy(s,a) && a.actionType == 'CAST')
-            if(castCanBuy.length > 0){
-                let found = randomInArray(castCanBuy)
-                debug("brew random")
-                sendBrewCast(found)
-            } else {
-                sendWait()
-            }
-        }
+        sendWait()
     }
+}
+
+function recursiveDeepCopy(obj) {
+    return Object.keys(obj).reduce((v, d) => Object.assign(v, {
+        [d]: (obj[d].constructor === Object) ? recursiveDeepCopy(obj[d]) : obj[d]
+    }), {});
+}
+
+function playAction(state, action) {
+    let newState = recursiveDeepCopy(state)
+    switch (newState.actionType) {
+        case 'CAST':
+            break;
+    }
+    return newState
 }
 
 function randomInArray(array) {
