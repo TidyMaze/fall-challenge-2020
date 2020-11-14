@@ -222,7 +222,7 @@ function recursiveDeepCopy(obj) {
 
 function playAction(state, action) {
     let newState = recursiveDeepCopy(state)
-    switch (newState.actionType) {
+    switch (action.actionType) {
         case 'CAST':
             {
                 let actionInNewState = newState.actions.find(e => e.id == action.id)
@@ -235,6 +235,8 @@ function playAction(state, action) {
             newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             newState.myScore += action.price
             break
+        default:
+            throw new Error(`Unhandled action ${action}`)
     }
     return newState
 }
