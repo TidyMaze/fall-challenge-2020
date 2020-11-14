@@ -110,11 +110,11 @@ function score(action) {
     return (action.actionType == 'BREW' ? 1000 : 0) + action.price / cost
 }
 
-function scoreSide(score, inventory){
+function scoreSide(score, inventory) {
     return score * 1000 + sum(inventory)
 }
 
-function scoreState(s){
+function scoreState(s) {
     return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory)
 }
 
@@ -232,11 +232,24 @@ function recursiveDeepCopy(obj) {
 
 function playAction(state, action) {
     let newState = recursiveDeepCopy(state)
-    // switch (newState.actionType) {
-        // case 'CAST':
-            // break;
-    // }
+    switch (newState.actionType) {
+        case 'CAST':
+            {
+                let actionInNewState = newState.actions.find(e => e.id == action.id)
+                actionInNewState.castable = false
+                newState.myInventory = addInventoryDiff(newState.myInventory, actionInNewState.deltas)
+            }
+            break
+        case 'BREW':
+            newState.actions = newState.actions.filter(e => e.id != action.id)
+            newState.myScore += action.price
+            break
+    }
     return newState
+}
+
+function addInventoryDiff(inv, diff){
+    return inv.map((e, i) => e + diff[i])
 }
 
 function randomInArray(array) {
