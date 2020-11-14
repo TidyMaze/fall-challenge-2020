@@ -85,8 +85,8 @@ while (true) {
 
 }
 
-function debug(content) {
-    console.error(JSON.stringify(content))
+function debug(msg, content) {
+    console.error(`${msg}: ` + JSON.stringify(content))
 }
 
 function send(output) {
@@ -158,37 +158,32 @@ function getAllValidActions(s) {
     return [...s.actions].filter(a => canBuy(s, a))
 }
 
+function pruneActions(actions, s, canRest){
+    let someIsUseful = actions.some(a => a.actionType == 'CAST' && atLeastOneInvIsUseful(s, a))
+
+    return actions.filter(a =>
+        (a.actionType != 'CAST' || (!someIsUseful && !canRest) || atLeastOneInvIsUseful(s, a))
+    )
+}
+
 /**
  * 
  * @param {Object} s 
  */
 function decideAction(s) {
     let buyable = getAllValidActions(s)
-
-    // let allNewStates = buyable.map(a => playAction(s,a))
-
-    let someIsUseful = buyable.some(a => a.actionType == 'CAST' && atLeastOneInvIsUseful(s, a))
-
     let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
+    let buyableAndUseful = pruneActions(buyable, s, canRest)
 
-    let buyableAndUseful = buyable.filter(a =>
-        (a.actionType != 'CAST' || (!someIsUseful && !canRest) || atLeastOneInvIsUseful(s, a))
-    )
-
-    // let picked = randomInArray(buyableAndUseful)
-
-    debug("buyableAndUseful")
-    debug(buyableAndUseful)
+    debug("buyableAndUseful", buyableAndUseful)
 
     let picked = maxBy(buyableAndUseful, a => {
         let newState = playAction(s, a)
-        debug('newState')
-        debug(newState)
+        debug('newState', newState)
         return scoreState(newState)
     })
 
-    debug("picked")
-    debug(picked)
+    debug("picked", picked)
 
     if (picked && (picked.actionType == 'CAST' || picked.actionType == 'BREW')) {
         sendBrewCast(picked)
@@ -244,7 +239,7 @@ function playAction(state, action) {
     return newState
 }
 
-function addInventoryDiff(inv, diff){
+function addInventoryDiff(inv, diff) {
     return inv.map((e, i) => e + diff[i])
 }
 
