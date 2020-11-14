@@ -177,7 +177,7 @@ function addArray(arr, item){
  * @param {Object} s 
  */
 function decideAction(state) {
-    let MAX_DEPTH = 2 
+    let MAX_DEPTH = 10
 
     let sequenceOfActionToState = []
 
@@ -185,18 +185,13 @@ function decideAction(state) {
         let buyable = getAllValidActions(s)
         let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
         let buyableAndUseful = pruneActions(buyable, s, canRest)
-        // debug("buyableAndUseful", buyableAndUseful)
 
         if(history.length > 0 && (buyableAndUseful.length == 0 || depth == 0)){
             sequenceOfActionToState.push([history, s, scoreState(s)])
         } else {
             buyableAndUseful.forEach(a => {
                 let newState = playAction(s, a)
-                // debug('newState', newState)
-
                 let newHistory = addArray(history, a)
-                // debug('newHistory', newState)
-
                 aux(newHistory, newState, depth - 1)
             })
         }
