@@ -67,7 +67,7 @@ while (true) {
             myScore = score
         } else {
             opponentInventory = inv
-            opponentScore = inv
+            opponentScore = score
         }
 
     }
@@ -86,7 +86,7 @@ while (true) {
 }
 
 function debug(content) {
-    console.error(JSON.stringify(content, null, 2))
+    console.error(JSON.stringify(content))
 }
 
 function send(output) {
@@ -108,6 +108,14 @@ function sendBrewCast(action) {
 function score(action) {
     let cost = sum(INV_WEIGHTS.map((w, i) => w * action.deltas[i]))
     return (action.actionType == 'BREW' ? 1000 : 0) + action.price / cost
+}
+
+function scoreSide(score, inventory){
+    return score * 1000 + sum(inventory)
+}
+
+function scoreState(s){
+    return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory)
 }
 
 /**
@@ -172,7 +180,20 @@ function decideAction(s) {
         (a.actionType != 'CAST' || (!someIsUseful && !canRest) || atLeastOneInvIsUseful(s, a))
     )
 
-    let picked = randomInArray(buyableAndUseful)
+    // let picked = randomInArray(buyableAndUseful)
+
+    debug("buyableAndUseful")
+    debug(buyableAndUseful)
+
+    let picked = maxBy(buyableAndUseful, a => {
+        let newState = playAction(s, a)
+        debug('newState')
+        debug(newState)
+        return scoreState(newState)
+    })
+
+    debug("picked")
+    debug(picked)
 
     if (picked && (picked.actionType == 'CAST' || picked.actionType == 'BREW')) {
         sendBrewCast(picked)
@@ -183,6 +204,26 @@ function decideAction(s) {
     }
 }
 
+function isEmpty(arr) {
+    return arr.length == 0
+}
+
+function maxBy(arr, scoreFn) {
+    if (isEmpty(arr)) {
+        return null
+    }
+    let best
+    let bestScore
+    arr.forEach(e => {
+        let s = scoreFn(e)
+        if (best == undefined || s > bestScore) {
+            best = e
+            bestScore = s
+        }
+    });
+    return best
+}
+
 function recursiveDeepCopy(obj) {
     return Object.keys(obj).reduce((v, d) => Object.assign(v, {
         [d]: (obj[d].constructor === Object) ? recursiveDeepCopy(obj[d]) : obj[d]
@@ -191,10 +232,10 @@ function recursiveDeepCopy(obj) {
 
 function playAction(state, action) {
     let newState = recursiveDeepCopy(state)
-    switch (newState.actionType) {
-        case 'CAST':
-            break;
-    }
+    // switch (newState.actionType) {
+        // case 'CAST':
+            // break;
+    // }
     return newState
 }
 
