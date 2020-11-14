@@ -166,27 +166,54 @@ function pruneActions(actions, s, canRest){
     )
 }
 
+function addArray(arr, item){
+    let res = [...arr]
+    res.push(item)
+    return res
+}
+
 /**
  * 
  * @param {Object} s 
  */
-function decideAction(s) {
-    let buyable = getAllValidActions(s)
-    let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
-    let buyableAndUseful = pruneActions(buyable, s, canRest)
+function decideAction(state) {
+    let MAX_DEPTH = 2 
 
-    debug("buyableAndUseful", buyableAndUseful)
+    let sequenceOfActionToState = []
 
-    let picked = maxBy(buyableAndUseful, a => {
-        let newState = playAction(s, a)
-        debug('newState', newState)
-        return scoreState(newState)
-    })
+    function aux(history, s, depth){
+        let buyable = getAllValidActions(s)
+        let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
+        let buyableAndUseful = pruneActions(buyable, s, canRest)
+        // debug("buyableAndUseful", buyableAndUseful)
 
-    debug("picked", picked)
+        if(history.length > 0 && (buyableAndUseful.length == 0 || depth == 0)){
+            sequenceOfActionToState.push([history, s, scoreState(s)])
+        } else {
+            buyableAndUseful.forEach(a => {
+                let newState = playAction(s, a)
+                // debug('newState', newState)
 
-    if (picked && (picked.actionType == 'CAST' || picked.actionType == 'BREW')) {
-        sendBrewCast(picked)
+                let newHistory = addArray(history, a)
+                // debug('newHistory', newState)
+
+                aux(newHistory, newState, depth - 1)
+            })
+        }
+    }
+
+    let canRest = state.actions.some(a => a.actionType == 'CAST' && !a.castable)
+
+    aux([], state, MAX_DEPTH)
+
+    debug('sequenceOfActionToState', sequenceOfActionToState)
+
+    let pickedSequenceToState = maxBy(sequenceOfActionToState, item => item[2])
+
+    debug("picked", pickedSequenceToState)
+
+    if (pickedSequenceToState && (pickedSequenceToState[0][0].actionType == 'CAST' || pickedSequenceToState[0][0].actionType == 'BREW')) {
+        sendBrewCast(pickedSequenceToState[0][0])
     } else if (canRest) {
         sendRest()
     } else {
@@ -225,13 +252,13 @@ function playAction(state, action) {
     switch (action.actionType) {
         case 'CAST':
             {
-                let actionInNewState = newState.actions.find(e => e.id == action.id)
+                let actionInNewState = newState.actions.find(e => e.actionId == action.actionId)
                 actionInNewState.castable = false
                 newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             }
             break
         case 'BREW':
-            newState.actions = newState.actions.filter(e => e.id != action.id)
+            newState.actions = newState.actions.filter(e => e.actionId != action.actionId)
             newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             newState.myScore += action.price
             break
