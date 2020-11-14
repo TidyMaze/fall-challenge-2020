@@ -206,7 +206,7 @@ function decideAction(state) {
 
     aux([], state, MAX_DEPTH)
 
-    debug('sequenceOfActionToState', sequenceOfActionToState)
+    // debug('sequenceOfActionToState', sequenceOfActionToState)
 
     let pickedSequenceToState = maxBy(sequenceOfActionToState, item => item[2])
 
