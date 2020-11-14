@@ -105,11 +105,6 @@ function sendBrewCast(action) {
     send(`${action.actionType} ${action.actionId}`)
 }
 
-function score(action) {
-    let cost = sum(INV_WEIGHTS.map((w, i) => w * action.deltas[i]))
-    return (action.actionType == 'BREW' ? 1000 : 0) + action.price / cost
-}
-
 function scoreSide(score, inventory) {
     return score * 1000 + sum(inventory)
 }
@@ -237,11 +232,12 @@ function playAction(state, action) {
             {
                 let actionInNewState = newState.actions.find(e => e.id == action.id)
                 actionInNewState.castable = false
-                newState.myInventory = addInventoryDiff(newState.myInventory, actionInNewState.deltas)
+                newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             }
             break
         case 'BREW':
             newState.actions = newState.actions.filter(e => e.id != action.id)
+            newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             newState.myScore += action.price
             break
     }
