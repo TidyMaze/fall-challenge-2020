@@ -25,6 +25,25 @@ function newAction(actionId, actionType, deltas, price, tomeIndex, taxCount, cas
     }
 }
 
+let actionTypes = {
+    REST: 'REST',
+    CAST: 'CAST',
+    OPPONENT_CAST: 'OPPONENT_CAST',
+    LEARN: 'LEARN',
+    BREW: 'BREW'
+}
+
+let restAction = {
+    actionId: -1,
+    actionType: actionTypes.REST,
+    deltas: [0, 0, 0, 0],
+    price: 0,
+    tomeIndex: -1,
+    taxCount: 0,
+    castable: false,
+    repeatable: false
+}
+
 // eslint-disable-next-line no-constant-condition
 while (true) {
     const actionCount = parseInt(readline()); // the number of spells and recipes in play
@@ -115,16 +134,16 @@ function scoreState(s) {
 
 /**
  * 
- * @param {State} state 
- * @param {Action} action 
+ * @param {Object} state 
+ * @param {Object} action 
  */
 function canBuy(state, action) {
     let countInv = sum(state.myInventory)
 
     switch (action.actionType) {
-        case 'OPPONENT_CAST':
+        case actionTypes.OPPONENT_CAST:
             return false
-        case 'CAST':
+        case actionTypes.CAST:
             {
                 let countDeltas = sum(action.deltas)
                 let enoughSpace = countInv + countDeltas <= 10
@@ -134,7 +153,7 @@ function canBuy(state, action) {
                     (action.deltas[3] + state.myInventory[3] >= 0)
                 return action.castable && enoughInv && enoughSpace
             }
-        case 'BREW':
+        case actionTypes.BREW:
             {
                 let countDeltas = sum(action.deltas)
                 let enoughSpace = countInv + countDeltas <= 10
@@ -144,8 +163,10 @@ function canBuy(state, action) {
                     (action.deltas[3] + state.myInventory[3] >= 0)
                 return enoughInv && enoughSpace
             }
-        case 'LEARN':
+        case actionTypes.LEARN:
             return false
+        default:
+            throw new Error(`Unhandled action type: ${action.actionType}`)
     }
 
 }
@@ -155,10 +176,12 @@ function canBuy(state, action) {
  * @param {Object} s 
  */
 function getAllValidActions(s) {
-    return [...s.actions].filter(a => canBuy(s, a))
+    let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
+    return [...s.actions].filter(a => canBuy(s, a)).concat(canRest ? [restAction] : [])
 }
 
-function pruneActions(actions, s, canRest){
+function pruneActions(actions, s) {
+    let canRest = actions.some(a => a.actionId == restAction.actionId)
     let someIsUseful = actions.some(a => a.actionType == 'CAST' && atLeastOneInvIsUseful(s, a))
 
     return actions.filter(a =>
@@ -166,7 +189,7 @@ function pruneActions(actions, s, canRest){
     )
 }
 
-function addArray(arr, item){
+function addArray(arr, item) {
     let res = [...arr]
     res.push(item)
     return res
@@ -177,16 +200,15 @@ function addArray(arr, item){
  * @param {Object} s 
  */
 function decideAction(state) {
-    let MAX_DEPTH = 10
+    let MAX_DEPTH = 5
 
     let sequenceOfActionToState = []
 
-    function aux(history, s, depth){
+    function aux(history, s, depth) {
         let buyable = getAllValidActions(s)
-        let canRest = s.actions.some(a => a.actionType == 'CAST' && !a.castable)
-        let buyableAndUseful = pruneActions(buyable, s, canRest)
+        let buyableAndUseful = pruneActions(buyable, s)
 
-        if(history.length > 0 && (buyableAndUseful.length == 0 || depth == 0)){
+        if (history.length > 0 && (buyableAndUseful.length == 0 || depth == 0)) {
             sequenceOfActionToState.push([history, s, scoreState(s)])
         } else {
             buyableAndUseful.forEach(a => {
@@ -196,8 +218,6 @@ function decideAction(state) {
             })
         }
     }
-
-    let canRest = state.actions.some(a => a.actionType == 'CAST' && !a.castable)
 
     aux([], state, MAX_DEPTH)
 
@@ -209,7 +229,7 @@ function decideAction(state) {
 
     if (pickedSequenceToState && (pickedSequenceToState[0][0].actionType == 'CAST' || pickedSequenceToState[0][0].actionType == 'BREW')) {
         sendBrewCast(pickedSequenceToState[0][0])
-    } else if (canRest) {
+    } else if (pickedSequenceToState && (pickedSequenceToState[0][0].actionType == restAction.actionType)) {
         sendRest()
     } else {
         sendWait()
@@ -245,20 +265,27 @@ function recursiveDeepCopy(obj) {
 function playAction(state, action) {
     let newState = recursiveDeepCopy(state)
     switch (action.actionType) {
-        case 'CAST':
+        case actionTypes.CAST:
             {
                 let actionInNewState = newState.actions.find(e => e.actionId == action.actionId)
                 actionInNewState.castable = false
                 newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
             }
             break
-        case 'BREW':
+        case actionTypes.BREW:
             newState.actions = newState.actions.filter(e => e.actionId != action.actionId)
             newState.myInventory = addInventoryDiff(newState.myInventory, action.deltas)
-            newState.myScore += action.price
+            newState.myScore += action.price + action.tomeIndex
+            break
+        case actionTypes.REST:
+            newState.actions.forEach(a => {
+                if(a.actionType == actionTypes.CAST && !a.castable){
+                    a.castable = true
+                }
+            })
             break
         default:
-            throw new Error(`Unhandled action ${action}`)
+            throw new Error(`Unhandled action ${JSON.stringify(action)}`)
     }
     return newState
 }
