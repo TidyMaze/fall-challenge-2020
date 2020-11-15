@@ -195,7 +195,8 @@ void getAllValidActions(State &s, vector<Action> &dest)
 
     for (auto &a : s.actions)
     {
-        if (a.actionType == ActionType::CAST && !a.castable){
+        if (a.actionType == ActionType::CAST && !a.castable)
+        {
             canRest = true;
         }
 
@@ -212,18 +213,53 @@ void getAllValidActions(State &s, vector<Action> &dest)
     }
 }
 
+void pruneActions(vector<Action> &actions, State &s)
+{
+}
+
+int invSum(int arr[4])
+{
+    int res = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        res += arr[i];
+    }
+    return res;
+}
+
+double scoreSide(int score, int inventory[4])
+{
+    return score * 1000 + invSum(inventory);
+}
+
+double scoreState(State &s)
+{
+    return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory);
+}
+
 void decideAction(State &state)
 {
     int MAX_DEPTH = 5;
 
     vector<pair<vector<Action>, double>> sequenceOfActionToState;
 
-    auto aux = [](vector<Action> &history, State &s, int depth) {
+    auto aux = [&, sequenceOfActionToState] (vector<Action> &history, State &s, int depth) mutable {
         vector<Action> buyable;
         getAllValidActions(s, buyable);
+        pruneActions(buyable, s);
 
-        // TODO
+        if (!history.empty() && (buyable.empty() || depth == 0))
+        {
+            pair<vector<Action>, double> p = pair{history, scoreState(s)};
+            sequenceOfActionToState.push_back(p);
+        } else {
+            // TODO
+        }
     };
+
+    // TODO
+    vector<Action> baseHistory = vector<Action> {};
+    aux(baseHistory, state, MAX_DEPTH);
 }
 
 void send(string out)
