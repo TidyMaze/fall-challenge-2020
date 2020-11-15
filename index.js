@@ -99,7 +99,7 @@ while (true) {
     // Write an action using console.log()
     // To debug: console.error('Debug messages...');
 
-    if (turn < 8) {
+    if (turn < 10) {
         let freeLearn = state.actions.filter(a => a.actionType == actionTypes.LEARN)[0]
         send(`LEARN ${freeLearn.actionId}`)
     } else {
@@ -206,7 +206,7 @@ function addArray(arr, item) {
  * @param {Object} s 
  */
 function decideAction(state) {
-    let MAX_DEPTH = 3
+    let MAX_DEPTH = 5
 
     let sequenceOfActionToState = []
 
@@ -217,17 +217,23 @@ function decideAction(state) {
         if (history.length > 0 && (buyableAndUseful.length == 0 || depth == 0)) {
             sequenceOfActionToState.push([history, s, scoreState(s)])
         } else {
-            buyableAndUseful.forEach(a => {
+            sortBy(buyableAndUseful.map(a => {
                 let newState = playAction(s, a)
                 let newHistory = addArray(history, a)
-                aux(newHistory, newState, depth - 1)
-            })
+                let score = scoreState(newState)
+                return [newHistory, newState, score]
+            }), e => -e[2])
+                .slice(0, 3)
+                .map(e => {
+                    let [newHistory, newState, score] = e
+                    aux(newHistory, newState, depth - 1)
+                })
         }
     }
 
     aux([], state, MAX_DEPTH)
 
-    // debug('sequenceOfActionToState', sequenceOfActionToState)
+    debug('sequenceOfActionToState count:', sequenceOfActionToState.length)
 
     let pickedSequenceToState = maxBy(sequenceOfActionToState, item => item[2])
 
@@ -260,6 +266,11 @@ function maxBy(arr, scoreFn) {
         }
     });
     return best
+}
+
+function sortBy(arr, scoreFn) {
+    arr.sort((a, b) => scoreFn(a) - scoreFn(b))
+    return arr
 }
 
 function recursiveDeepCopy(obj) {
