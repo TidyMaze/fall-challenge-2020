@@ -9,6 +9,7 @@ class State;
 class Action;
 void send(string out);
 void debug(string message);
+void decideAction(State &state);
 
 enum ActionType
 {
@@ -44,7 +45,7 @@ public:
     bool repeatable;
 };
 
-class RestAction : Action
+class RestAction : public Action
 {
 public:
     RestAction()
@@ -175,8 +176,54 @@ int main()
 
             send("LEARN " + to_string(freeLearn->actionId));
         }
+        else
+        {
+            decideAction(state);
+        }
         turn++;
     }
+}
+
+bool canBuy(State &state, Action &action)
+{
+    return true;
+}
+
+void getAllValidActions(State &s, vector<Action> &dest)
+{
+    bool canRest = false;
+
+    for (auto &a : s.actions)
+    {
+        if (a.actionType == ActionType::CAST && !a.castable){
+            canRest = true;
+        }
+
+        if (canBuy(s, a))
+        {
+            dest.push_back(a);
+        }
+    }
+
+    if (canRest)
+    {
+        RestAction restAction;
+        dest.push_back(restAction);
+    }
+}
+
+void decideAction(State &state)
+{
+    int MAX_DEPTH = 5;
+
+    vector<pair<vector<Action>, double>> sequenceOfActionToState;
+
+    auto aux = [](vector<Action> &history, State &s, int depth) {
+        vector<Action> buyable;
+        getAllValidActions(s, buyable);
+
+        // TODO
+    };
 }
 
 void send(string out)
