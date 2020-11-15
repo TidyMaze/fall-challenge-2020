@@ -45,6 +45,7 @@ let restAction = {
 }
 
 // eslint-disable-next-line no-constant-condition
+let turn = 0
 while (true) {
     const actionCount = parseInt(readline()); // the number of spells and recipes in play
 
@@ -98,14 +99,19 @@ while (true) {
     // Write an action using console.log()
     // To debug: console.error('Debug messages...');
 
-    decideAction(state)
+    if (turn < 8) {
+        let freeLearn = state.actions.filter(a => a.actionType == actionTypes.LEARN)[0]
+        send(`LEARN ${freeLearn.actionId}`)
+    } else {
+        decideAction(state)
+    }
 
     // in the first league: BREW <id> | WAIT; later: BREW <id> | CAST <id> [<times>] | LEARN <id> | REST | WAIT
-
+    turn++
 }
 
 function debug(msg, content) {
-    console.error(`${msg}: ` + JSON.stringify(content))
+    console.error(`${msg}:\n` + JSON.stringify(content))
 }
 
 function send(output) {
@@ -200,7 +206,7 @@ function addArray(arr, item) {
  * @param {Object} s 
  */
 function decideAction(state) {
-    let MAX_DEPTH = 5
+    let MAX_DEPTH = 3
 
     let sequenceOfActionToState = []
 
@@ -279,9 +285,9 @@ function playAction(state, action) {
             newState.actions
                 .filter(a => a.actionType == actionTypes.BREW)
                 .forEach((a, i) => {
-                    if(i == 0){
+                    if (i == 0) {
                         a.tomeIndex = 3
-                    } else if(i == 1){
+                    } else if (i == 1) {
                         a.tomeIndex = 1
                     } else {
                         a.tomeIndex = 0
@@ -290,7 +296,7 @@ function playAction(state, action) {
             break
         case actionTypes.REST:
             newState.actions.forEach(a => {
-                if(a.actionType == actionTypes.CAST && !a.castable){
+                if (a.actionType == actionTypes.CAST && !a.castable) {
                     a.castable = true
                 }
             })
