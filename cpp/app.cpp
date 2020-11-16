@@ -11,6 +11,12 @@ void send(string out);
 void debug(string message);
 void decideAction(State &state);
 
+void send(string out);
+void sendWait();
+void sendRest();
+void sendBrewCast(Action &action);
+State playAction(State & s, Action & action);
+
 enum ActionType
 {
     REST,
@@ -243,7 +249,7 @@ void decideAction(State &state)
 
     vector<pair<vector<Action>, double>> sequenceOfActionToState;
 
-    auto aux = [&, sequenceOfActionToState] (vector<Action> &history, State &s, int depth) mutable {
+    function<void(vector<Action> &, State &, int)> aux = [&, sequenceOfActionToState](vector<Action> &history, State &s, int depth) mutable {
         vector<Action> buyable;
         getAllValidActions(s, buyable);
         pruneActions(buyable, s);
@@ -252,19 +258,101 @@ void decideAction(State &state)
         {
             pair<vector<Action>, double> p = pair{history, scoreState(s)};
             sequenceOfActionToState.push_back(p);
-        } else {
-            // TODO
+        }
+        else
+        {
+            vector<tuple<vector<Action>, State, double>> childsStates;
+
+            for (auto &a : buyable)
+            {
+                State newState = playAction(s, a);
+                vector<Action> newHistory = history;
+                newHistory.push_back(a);
+                double score = scoreState(newState);
+                childsStates.push_back({newHistory, newState, score});
+            }
+
+            sort(childsStates.begin(), childsStates.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
+                return get<2>(a) > get<2>(b);
+            });
+
+            for (int i = 0; i < min(3, (int)childsStates.size()); i++)
+            {
+                aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
+            }
         }
     };
 
     // TODO
-    vector<Action> baseHistory = vector<Action> {};
+    vector<Action> baseHistory = vector<Action>{};
     aux(baseHistory, state, MAX_DEPTH);
+
+    sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<vector<Action>, double> a, pair<vector<Action>, double> b) {
+        return get<1>(a) > get<1>(b);
+    });
+
+    if (!sequenceOfActionToState.empty())
+    {
+        pair<vector<Action>, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
+        if (get<0>(pickedSequenceToState)[0].actionType == ActionType::CAST || get<0>(pickedSequenceToState)[0].actionType == ActionType::BREW)
+        {
+            sendBrewCast(get<0>(pickedSequenceToState)[0]);
+        }
+        else if (get<0>(pickedSequenceToState)[0].actionType == ActionType::REST)
+        {
+            sendRest();
+        }
+        else
+        {
+            sendWait();
+        }
+    }
+    else
+    {
+        sendWait();
+    }
+}
+
+State playAction(State & s, Action & action)
+{
+    return s;
 }
 
 void send(string out)
 {
     cout << out << endl;
+}
+
+void sendWait()
+{
+    send("WAIT");
+}
+
+void sendRest()
+{
+    send("REST");
+}
+
+string showActionType(ActionType a)
+{
+    switch (a)
+    {
+    case ActionType::BREW:
+        return "BREW";
+    case ActionType::CAST:
+        return "CAST";
+    case ActionType::OPPONENT_CAST:
+        return "OPPONENT_CAST";
+    case ActionType::LEARN:
+        return "LEARN";
+    case ActionType::REST:
+        return "REST";
+    }
+}
+
+void sendBrewCast(Action &action)
+{
+    send(showActionType(action.actionType) + " " + to_string(action.actionId));
 }
 
 void debug(string message)
