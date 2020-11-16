@@ -320,11 +320,12 @@ void decideAction(State &state)
     if (!sequenceOfActionToState.empty())
     {
         pair<vector<Action>, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
-        if (get<0>(pickedSequenceToState)[0].actionType == ActionType::CAST || get<0>(pickedSequenceToState)[0].actionType == ActionType::BREW)
+        Action & firstAction = get<0>(pickedSequenceToState)[0];
+        if (firstAction.actionType == ActionType::CAST || firstAction.actionType == ActionType::BREW)
         {
-            sendBrewCast(get<0>(pickedSequenceToState)[0]);
+            sendBrewCast(firstAction);
         }
-        else if (get<0>(pickedSequenceToState)[0].actionType == ActionType::REST)
+        else if (firstAction.actionType == ActionType::REST)
         {
             sendRest();
         }
