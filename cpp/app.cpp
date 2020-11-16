@@ -16,6 +16,7 @@ void sendWait();
 void sendRest();
 void sendBrewCast(Action &action);
 void playAction(State &s, Action &action, State &newState);
+int invSum(int arr[4]);
 
 enum ActionType
 {
@@ -88,7 +89,7 @@ ActionType parseActionType(string raw)
     }
     else
     {
-        throw runtime_error("Unhandled action type " + raw);
+        throw runtime_error("Unhandled raw action type " + raw);
     }
 }
 
@@ -194,7 +195,35 @@ int main()
 
 bool canBuy(State &state, Action &action)
 {
-    return true;
+    int countInv = invSum(state.myInventory);
+
+    switch (action.actionType)
+    {
+    case ActionType::OPPONENT_CAST:
+        return false;
+    case ActionType::LEARN:
+        return false;
+    case ActionType::CAST:
+    {
+        int countDeltas = invSum(action.deltas);
+        bool enoughSpace = countInv + countDeltas <= 10;
+        bool enoughInv = (action.deltas[0] + state.myInventory[0] >= 0) &&
+                         (action.deltas[1] + state.myInventory[1] >= 0) &&
+                         (action.deltas[2] + state.myInventory[2] >= 0) &&
+                         (action.deltas[3] + state.myInventory[3] >= 0);
+        return action.castable && enoughInv && enoughSpace;
+    }
+    case ActionType::BREW:
+    {
+        int countDeltas = invSum(action.deltas);
+        bool enoughSpace = countInv + countDeltas <= 10;
+        bool enoughInv = (action.deltas[0] + state.myInventory[0] >= 0) &&
+                         (action.deltas[1] + state.myInventory[1] >= 0) &&
+                         (action.deltas[2] + state.myInventory[2] >= 0) &&
+                         (action.deltas[3] + state.myInventory[3] >= 0);
+        return enoughInv && enoughSpace;
+    }
+    }
 }
 
 void getAllValidActions(State &s, vector<Action> &dest)
