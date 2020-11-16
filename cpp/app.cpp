@@ -1,3 +1,10 @@
+#pragma GCC optimize("O3")
+#pragma GCC optimize("inline")
+#pragma GCC optimize("omit-frame-pointer")
+#pragma GCC optimize("unroll-loops") //Optimization flags
+
+#pragma GCC optimize("Ofast")
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,6 +24,8 @@ void sendRest();
 void sendBrewCast(Action &action);
 void playAction(State &s, Action &action, State &newState);
 int invSum(int arr[4]);
+
+const int MAX_CHILDS_PER_NODE = 5;
 
 enum ActionType
 {
@@ -306,7 +315,7 @@ void decideAction(State &state)
                 return get<2>(a) > get<2>(b);
             });
 
-            for (int i = 0; i < min(4, (int)childsStates.size()); i++)
+            for (int i = 0; i < min(MAX_CHILDS_PER_NODE, (int)childsStates.size()); i++)
             {
                 aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
             }
