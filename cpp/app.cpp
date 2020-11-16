@@ -275,7 +275,7 @@ void decideAction(State &state)
 
     vector<pair<vector<Action>, double>> sequenceOfActionToState;
 
-    function<void(vector<Action> &, State &, int)> aux = [&, sequenceOfActionToState](vector<Action> &history, State &s, int depth) mutable {
+    function<void(vector<Action> &, State &, int)> aux = [&sequenceOfActionToState, &aux](vector<Action> &history, State &s, int depth) mutable {
         vector<Action> buyable;
         getAllValidActions(s, buyable);
         pruneActions(buyable, s);
@@ -284,10 +284,13 @@ void decideAction(State &state)
         {
             pair<vector<Action>, double> p = pair{history, scoreState(s)};
             sequenceOfActionToState.push_back(p);
+            // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
         }
         else
         {
             vector<tuple<vector<Action>, State, double>> childsStates;
+
+            // debug("buyable length: " + to_string(buyable.size()));
 
             for (auto &a : buyable)
             {
@@ -303,7 +306,7 @@ void decideAction(State &state)
                 return get<2>(a) > get<2>(b);
             });
 
-            for (int i = 0; i < min(3, (int)childsStates.size()); i++)
+            for (int i = 0; i < min(4, (int)childsStates.size()); i++)
             {
                 aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
             }
@@ -312,6 +315,8 @@ void decideAction(State &state)
 
     vector<Action> baseHistory = vector<Action>{};
     aux(baseHistory, state, MAX_DEPTH);
+
+    debug("final sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
 
     sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<vector<Action>, double> a, pair<vector<Action>, double> b) {
         return get<1>(a) > get<1>(b);
