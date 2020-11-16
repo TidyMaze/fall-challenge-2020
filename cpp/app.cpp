@@ -15,7 +15,7 @@ void send(string out);
 void sendWait();
 void sendRest();
 void sendBrewCast(Action &action);
-State playAction(State & s, Action & action);
+void playAction(State &s, Action &action, State &newState);
 
 enum ActionType
 {
@@ -25,6 +25,8 @@ enum ActionType
     LEARN,
     BREW
 };
+
+string showActionType(ActionType a);
 
 const ActionType allActionTypes[] = {REST, CAST, OPPONENT_CAST, LEARN, BREW};
 
@@ -265,7 +267,8 @@ void decideAction(State &state)
 
             for (auto &a : buyable)
             {
-                State newState = playAction(s, a);
+                State newState = s;
+                playAction(s, a, newState);
                 vector<Action> newHistory = history;
                 newHistory.push_back(a);
                 double score = scoreState(newState);
@@ -313,9 +316,66 @@ void decideAction(State &state)
     }
 }
 
-State playAction(State & s, Action & action)
+void addInventoryDiff(int (&inv)[4], int diff[4])
 {
-    return s;
+    for (int i = 0; i < 4; i++)
+    {
+        inv[i] += diff[i];
+    }
+}
+
+void playAction(State &s, Action &action, State &newState)
+{
+    switch (action.actionType)
+    {
+    case ActionType::CAST:
+        for (Action &e : newState.actions)
+        {
+            if (e.actionId == action.actionId)
+            {
+                e.castable = false;
+            }
+        }
+        addInventoryDiff(newState.myInventory, action.deltas);
+        break;
+    case ActionType::BREW:
+        newState.actions.erase(remove_if(newState.actions.begin(), newState.actions.end(), [&, action](Action &e) {
+                                   return e.actionId == action.actionId;
+                               }),
+                               newState.actions.end());
+        addInventoryDiff(newState.myInventory, action.deltas);
+        newState.myScore += action.price + action.tomeIndex;
+        for (int i = 0; i < newState.actions.size(); i++)
+        {
+            if (newState.actions[i].actionType == ActionType::BREW)
+            {
+                if (i == 0)
+                {
+                    newState.actions[i].tomeIndex = 3;
+                }
+                else if (i == 1)
+                {
+                    newState.actions[i].tomeIndex = 1;
+                }
+                else
+                {
+                    newState.actions[i].tomeIndex = 0;
+                }
+            }
+        }
+        break;
+    case ActionType::REST:
+        for (Action &a : newState.actions)
+        {
+            if (a.actionType == ActionType::CAST && !a.castable)
+            {
+                a.castable = true;
+            }
+        }
+        break;
+    default:
+        throw runtime_error("Unhandled action type " + showActionType(action.actionType));
+    }
 }
 
 void send(string out)
