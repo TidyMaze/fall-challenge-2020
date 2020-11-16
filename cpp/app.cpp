@@ -137,11 +137,6 @@ int main()
             state.actions.push_back(action);
         }
 
-        // for (int i = 0; i < actions.size(); i++)
-        // {
-        // debug("actionId " + to_string(actions[i].actionId));
-        // }
-
         for (int i = 0; i < 2; i++)
         {
             int inv0; // tier-0 ingredients in inventory
@@ -315,7 +310,6 @@ void decideAction(State &state)
         }
     };
 
-    // TODO
     vector<Action> baseHistory = vector<Action>{};
     aux(baseHistory, state, MAX_DEPTH);
 
@@ -363,6 +357,7 @@ void playAction(State &s, Action &action, State &newState)
             if (e.actionId == action.actionId)
             {
                 e.castable = false;
+                break;
             }
         }
         addInventoryDiff(newState.myInventory, action.deltas);
