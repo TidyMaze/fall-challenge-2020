@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
 
@@ -26,6 +27,10 @@ void playAction(State &s, Action &action, State &newState);
 int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 5;
+
+const int TIMEOUT_MS = 50; 
+
+uint64_t start;
 
 enum ActionType
 {
@@ -74,6 +79,15 @@ public:
     }
 };
 
+uint64_t millis()
+{
+    uint64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::
+                                                                            now()
+                                                                                .time_since_epoch())
+                      .count();
+    return ms;
+}
+
 ActionType parseActionType(string raw)
 {
     if (raw == "REST")
@@ -111,6 +125,8 @@ int main()
         int actionCount; // the number of spells and recipes in play
         cin >> actionCount;
         cin.ignore();
+
+        start = millis();
 
         State state;
 
@@ -324,50 +340,69 @@ double scoreState(State &s)
 
 void decideAction(State &state)
 {
-    int MAX_DEPTH = 5;
-
     vector<pair<Action, double>> sequenceOfActionToState;
 
-    function<void(vector<Action> &, State &, int)> aux = [&sequenceOfActionToState, &aux](vector<Action> &history, State &s, int depth) mutable {
-        vector<Action> buyable;
-        getAllValidActions(s, buyable);
-        pruneActions(buyable, s);
-
-        if (!history.empty() && (buyable.empty() || depth == 0))
+    try
+    {
+        for (int curMaxDepth = 1;; curMaxDepth++)
         {
-            pair<Action, double> p = pair{history.at(0), scoreState(s)};
-            sequenceOfActionToState.push_back(p);
-            // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
+            vector<pair<Action, double>> curSequenceOfActionToState;
+            function<void(vector<Action> &, State &, int)> aux = [&curSequenceOfActionToState, &aux, curMaxDepth](vector<Action> &history, State &s, int depth) mutable {
+                auto elapsed = millis() - start;
+
+                if (elapsed > TIMEOUT_MS)
+                {
+                    debug("Elapsed ( " + (to_string(elapsed)) + " > " + to_string(TIMEOUT_MS) + " ms) with finished depth " + to_string(curMaxDepth - 1));
+                    throw runtime_error("No more time");
+                }
+
+                vector<Action> buyable;
+                getAllValidActions(s, buyable);
+                pruneActions(buyable, s);
+
+                if (!history.empty() && (buyable.empty() || depth == 0))
+                {
+                    pair<Action, double> p = pair{history.at(0), scoreState(s)};
+                    curSequenceOfActionToState.push_back(p);
+                    // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
+                }
+                else
+                {
+                    vector<tuple<vector<Action>, State, double>> childsStates;
+
+                    // debug("buyable length: " + to_string(buyable.size()));
+
+                    for (auto &a : buyable)
+                    {
+                        State newState = s;
+                        playAction(s, a, newState);
+                        vector<Action> newHistory = history;
+                        newHistory.push_back(a);
+                        double score = scoreState(newState);
+                        childsStates.push_back({newHistory, newState, score});
+                    }
+
+                    sort(childsStates.begin(), childsStates.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
+                        return get<2>(a) > get<2>(b);
+                    });
+
+                    for (int i = 0; i < min(MAX_CHILDS_PER_NODE, (int)childsStates.size()); i++)
+                    {
+                        aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
+                    }
+                }
+            };
+
+            vector<Action> baseHistory = vector<Action>{};
+            aux(baseHistory, state, curMaxDepth);
+
+            sequenceOfActionToState = curSequenceOfActionToState;
         }
-        else
-        {
-            vector<tuple<vector<Action>, State, double>> childsStates;
-
-            // debug("buyable length: " + to_string(buyable.size()));
-
-            for (auto &a : buyable)
-            {
-                State newState = s;
-                playAction(s, a, newState);
-                vector<Action> newHistory = history;
-                newHistory.push_back(a);
-                double score = scoreState(newState);
-                childsStates.push_back({newHistory, newState, score});
-            }
-
-            sort(childsStates.begin(), childsStates.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
-                return get<2>(a) > get<2>(b);
-            });
-
-            for (int i = 0; i < min(MAX_CHILDS_PER_NODE, (int)childsStates.size()); i++)
-            {
-                aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
-            }
-        }
-    };
-
-    vector<Action> baseHistory = vector<Action>{};
-    aux(baseHistory, state, MAX_DEPTH);
+    }
+    catch (const runtime_error &e)
+    {
+        // nothing to do
+    }
 
     debug("final sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
 
