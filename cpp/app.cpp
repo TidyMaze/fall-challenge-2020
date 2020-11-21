@@ -26,7 +26,7 @@ void sendBrewCast(Action &action);
 void playAction(State &s, Action &action, State &newState);
 int invSum(int arr[4]);
 
-const int MAX_CHILDS_PER_NODE = 5;
+const int MAX_CHILDS_PER_NODE = 100;
 
 const int TIMEOUT_MS = 50; 
 
