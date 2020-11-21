@@ -227,6 +227,8 @@ bool canBuy(State &state, Action &action)
                          (action.deltas[3] + state.myInventory[3] >= 0);
         return enoughInv && enoughSpace;
     }
+    default:
+        throw runtime_error("Unhandled action type in canBuy: " + showActionType(action.actionType));
     }
 }
 
@@ -256,6 +258,7 @@ void getAllValidActions(State &s, vector<Action> &dest)
 
 void pruneActions(vector<Action> &actions, State &s)
 {
+
 }
 
 int invSum(int arr[4])
@@ -282,7 +285,7 @@ void decideAction(State &state)
 {
     int MAX_DEPTH = 5;
 
-    vector<pair<vector<Action>, double>> sequenceOfActionToState;
+    vector<pair<Action, double>> sequenceOfActionToState;
 
     function<void(vector<Action> &, State &, int)> aux = [&sequenceOfActionToState, &aux](vector<Action> &history, State &s, int depth) mutable {
         vector<Action> buyable;
@@ -291,7 +294,7 @@ void decideAction(State &state)
 
         if (!history.empty() && (buyable.empty() || depth == 0))
         {
-            pair<vector<Action>, double> p = pair{history, scoreState(s)};
+            pair<Action, double> p = pair{history.at(0), scoreState(s)};
             sequenceOfActionToState.push_back(p);
             // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
         }
@@ -327,14 +330,14 @@ void decideAction(State &state)
 
     debug("final sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
 
-    sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<vector<Action>, double> a, pair<vector<Action>, double> b) {
+    sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<Action, double> a, pair<Action, double> b) {
         return get<1>(a) > get<1>(b);
     });
 
     if (!sequenceOfActionToState.empty())
     {
-        pair<vector<Action>, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
-        Action & firstAction = get<0>(pickedSequenceToState)[0];
+        pair<Action, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
+        Action & firstAction = get<0>(pickedSequenceToState);
         if (firstAction.actionType == ActionType::CAST || firstAction.actionType == ActionType::BREW)
         {
             sendBrewCast(firstAction);
