@@ -256,9 +256,50 @@ void getAllValidActions(State &s, vector<Action> &dest)
     }
 }
 
+bool atLeastOneInvIsUseful(State &state, Action &cast)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        if (cast.deltas[i] > 0)
+        {
+            for (Action &a : state.actions)
+            {
+                if (a.actionType == ActionType::BREW && a.deltas[i] < 0 && state.myInventory[i] < (-a.deltas[i]))
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 void pruneActions(vector<Action> &actions, State &s)
 {
+    bool canRest = false;
+    for (auto &a : actions)
+    {
+        if (a.actionType == ActionType::REST)
+        {
+            canRest = true;
+            break;
+        }
+    }
 
+    bool someIsUseful = false;
+    for (auto &a : actions)
+    {
+        if (a.actionType == ActionType::CAST && atLeastOneInvIsUseful(s, a))
+        {
+            someIsUseful = true;
+            break;
+        }
+    }
+
+    actions.erase(remove_if(actions.begin(), actions.end(), [someIsUseful, canRest, &s](Action &a) {
+                      return !(a.actionType != ActionType::CAST || (!someIsUseful && !canRest) || atLeastOneInvIsUseful(s, a));
+                  }),
+                  actions.end());
 }
 
 int invSum(int arr[4])
@@ -337,7 +378,7 @@ void decideAction(State &state)
     if (!sequenceOfActionToState.empty())
     {
         pair<Action, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
-        Action & firstAction = get<0>(pickedSequenceToState);
+        Action &firstAction = get<0>(pickedSequenceToState);
         if (firstAction.actionType == ActionType::CAST || firstAction.actionType == ActionType::BREW)
         {
             sendBrewCast(firstAction);
