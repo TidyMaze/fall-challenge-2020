@@ -28,7 +28,7 @@ int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 100;
 
-const int TIMEOUT_MS = 45; 
+const int TIMEOUT_MS = 50;
 
 uint64_t start;
 
@@ -338,6 +338,17 @@ double scoreState(State &s)
     return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory);
 }
 
+void throwIfTimeout(int curMaxDepth)
+{
+    auto elapsed = millis() - start;
+
+    if (elapsed >= TIMEOUT_MS)
+    {
+        debug("Elapsed ( " + (to_string(elapsed)) + " > " + to_string(TIMEOUT_MS) + " ms) with finished depth " + to_string(curMaxDepth - 1));
+        throw runtime_error("No more time");
+    }
+}
+
 void decideAction(State &state)
 {
     vector<pair<Action, double>> sequenceOfActionToState;
@@ -348,13 +359,7 @@ void decideAction(State &state)
         {
             vector<pair<Action, double>> curSequenceOfActionToState;
             function<void(vector<Action> &, State &, int)> aux = [&curSequenceOfActionToState, &aux, curMaxDepth](vector<Action> &history, State &s, int depth) mutable {
-                auto elapsed = millis() - start;
-
-                if (elapsed >= TIMEOUT_MS)
-                {
-                    debug("Elapsed ( " + (to_string(elapsed)) + " > " + to_string(TIMEOUT_MS) + " ms) with finished depth " + to_string(curMaxDepth - 1));
-                    throw runtime_error("No more time");
-                }
+                throwIfTimeout(curMaxDepth);
 
                 vector<Action> buyable;
                 getAllValidActions(s, buyable);
@@ -373,6 +378,7 @@ void decideAction(State &state)
 
                     for (auto &a : buyable)
                     {
+                        throwIfTimeout(curMaxDepth);
                         State newState = s;
                         playAction(s, a, newState);
                         vector<Action> newHistory = history;
