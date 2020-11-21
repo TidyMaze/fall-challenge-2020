@@ -28,9 +28,13 @@ int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 100;
 
-const int TIMEOUT_MS = 44;
+const int TIMEOUT_MS = 40;
 
 uint64_t start;
+
+int countChildNodes;
+int sumChildNodes;
+int countVisitedNodes;
 
 enum ActionType
 {
@@ -81,7 +85,7 @@ public:
 
 uint64_t millis()
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 ActionType parseActionType(string raw)
@@ -123,6 +127,10 @@ int main()
         cin.ignore();
 
         start = millis();
+
+        countChildNodes = 0;
+        sumChildNodes = 0;
+        countVisitedNodes = 0;
 
         State state;
 
@@ -355,6 +363,7 @@ void decideAction(State &state)
         {
             vector<pair<Action, double>> curSequenceOfActionToState;
             function<void(vector<Action> &, State &, int)> aux = [&curSequenceOfActionToState, &aux, curMaxDepth](vector<Action> &history, State &s, int depth) mutable {
+                countVisitedNodes++;
                 throwIfTimeout(curMaxDepth);
 
                 vector<Action> buyable;
@@ -383,6 +392,9 @@ void decideAction(State &state)
                         childsStates.push_back({newHistory, newState, score});
                     }
 
+                    sumChildNodes += childsStates.size();
+                    countChildNodes++;
+
                     sort(childsStates.begin(), childsStates.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
                         return get<2>(a) > get<2>(b);
                     });
@@ -406,6 +418,8 @@ void decideAction(State &state)
     }
 
     debug("final sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
+
+    debug("average childs by node: " + to_string((double)sumChildNodes / (double)countChildNodes) + ", visited nodes: " + to_string(countVisitedNodes));
 
     sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<Action, double> a, pair<Action, double> b) {
         return get<1>(a) > get<1>(b);
