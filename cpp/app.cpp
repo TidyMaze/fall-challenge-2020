@@ -28,7 +28,7 @@ int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 100;
 
-const int TIMEOUT_MS = 50; 
+const int TIMEOUT_MS = 48; 
 
 uint64_t start;
 
@@ -350,7 +350,7 @@ void decideAction(State &state)
             function<void(vector<Action> &, State &, int)> aux = [&curSequenceOfActionToState, &aux, curMaxDepth](vector<Action> &history, State &s, int depth) mutable {
                 auto elapsed = millis() - start;
 
-                if (elapsed > TIMEOUT_MS)
+                if (elapsed >= TIMEOUT_MS)
                 {
                     debug("Elapsed ( " + (to_string(elapsed)) + " > " + to_string(TIMEOUT_MS) + " ms) with finished depth " + to_string(curMaxDepth - 1));
                     throw runtime_error("No more time");
@@ -362,8 +362,7 @@ void decideAction(State &state)
 
                 if (!history.empty() && (buyable.empty() || depth == 0))
                 {
-                    pair<Action, double> p = pair{history.at(0), scoreState(s)};
-                    curSequenceOfActionToState.push_back(p);
+                    curSequenceOfActionToState.push_back(pair{history.at(0), scoreState(s)});
                     // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
                 }
                 else
