@@ -28,7 +28,7 @@ int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 100;
 
-const int TIMEOUT_MS = 48;
+const int TIMEOUT_MS = 44;
 
 uint64_t start;
 
@@ -81,11 +81,7 @@ public:
 
 uint64_t millis()
 {
-    uint64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::
-                                                                            now()
-                                                                                .time_since_epoch())
-                      .count();
-    return ms;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
 ActionType parseActionType(string raw)
