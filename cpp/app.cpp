@@ -28,7 +28,7 @@ int invSum(int arr[4]);
 
 const int MAX_CHILDS_PER_NODE = 100;
 
-const int TIMEOUT_MS = 50;
+const int TIMEOUT_MS = 48;
 
 uint64_t start;
 
