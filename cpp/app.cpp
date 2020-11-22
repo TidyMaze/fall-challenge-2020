@@ -70,6 +70,7 @@ public:
     int taxCount;
     bool castable;
     bool repeatable;
+    int repeat = 1;
 };
 
 class RestAction : public Action
@@ -230,11 +231,11 @@ bool canBuy(State &state, Action &action)
     case ActionType::CAST:
     {
         int countDeltas = invSum(action.deltas);
-        bool enoughSpace = countInv + countDeltas <= 10;
-        bool enoughInv = (action.deltas[0] + state.myInventory[0] >= 0) &&
-                         (action.deltas[1] + state.myInventory[1] >= 0) &&
-                         (action.deltas[2] + state.myInventory[2] >= 0) &&
-                         (action.deltas[3] + state.myInventory[3] >= 0);
+        bool enoughSpace = countInv + action.repeat * countDeltas <= 10;
+        bool enoughInv = (action.repeat * action.deltas[0] + state.myInventory[0] >= 0) &&
+                         (action.repeat * action.deltas[1] + state.myInventory[1] >= 0) &&
+                         (action.repeat * action.deltas[2] + state.myInventory[2] >= 0) &&
+                         (action.repeat * action.deltas[3] + state.myInventory[3] >= 0);
         return action.castable && enoughInv && enoughSpace;
     }
     case ActionType::BREW:
@@ -263,9 +264,27 @@ void getAllValidActions(State &s, vector<Action> &dest)
             canRest = true;
         }
 
-        if (canBuy(s, a))
+        if (a.actionType == ActionType::CAST && a.repeatable)
         {
-            dest.push_back(a);
+            for (int i = 1; i < 10; i++)
+            {
+                Action repeatedAction = a;
+                repeatedAction.repeat = i;
+
+                if (canBuy(s, repeatedAction))
+                {
+                    dest.push_back(repeatedAction);
+                } else {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            if (canBuy(s, a))
+            {
+                dest.push_back(a);
+            }
         }
     }
 
@@ -469,7 +488,9 @@ void playAction(State &s, Action &action, State &newState)
                 break;
             }
         }
-        addInventoryDiff(newState.myInventory, action.deltas);
+        for(int i=0;i<action.repeatable;i++){
+            addInventoryDiff(newState.myInventory, action.deltas);
+        }
         break;
     case ActionType::BREW:
         newState.actions.erase(remove_if(newState.actions.begin(), newState.actions.end(), [&, action](Action &e) {
@@ -545,7 +566,7 @@ string showActionType(ActionType a)
 
 void sendBrewCast(Action &action)
 {
-    send(showActionType(action.actionType) + " " + to_string(action.actionId));
+    send(showActionType(action.actionType) + " " + to_string(action.actionId) + " " + to_string(action.repeat));
 }
 
 void debug(string message)
