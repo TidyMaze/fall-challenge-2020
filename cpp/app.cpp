@@ -388,61 +388,59 @@ void throwIfTimeout(int curMaxDepth)
 
 void decideAction(State &state)
 {
-    vector<pair<Action, double>> sequenceOfActionToState;
+    vector<tuple<vector<Action>, State, double>> queue;
 
     try
     {
-        for (int curMaxDepth = 1;; curMaxDepth++)
+        vector<Action> initialHistory = {};
+        queue.push_back({initialHistory, state, scoreState(state, initialHistory)});
+
+        for (int depth = 1; !queue.empty(); depth++)
         {
-            vector<pair<Action, double>> curSequenceOfActionToState;
-            function<void(vector<Action> &, State &, int)> aux = [&curSequenceOfActionToState, &aux, curMaxDepth](vector<Action> &history, State &s, int depth) mutable {
+            vector<tuple<vector<Action>, State, double>> newQueue;
+            for (tuple<vector<Action>, State, double> &cur : queue)
+            {
                 countVisitedNodes++;
-                throwIfTimeout(curMaxDepth);
+                throwIfTimeout(depth);
+
+                vector<Action> &history = get<0>(cur);
+                State &s = get<1>(cur);
 
                 vector<Action> buyable;
                 getAllValidActions(s, buyable);
                 pruneActions(buyable, s);
 
-                if (!history.empty() && (buyable.empty() || depth == 0))
+                if (buyable.empty())
                 {
-                    curSequenceOfActionToState.push_back(pair{history.at(0), scoreState(s, history)});
-                    // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
+                    newQueue.push_back(cur);
                 }
                 else
                 {
-                    vector<tuple<vector<Action>, State, double>> childsStates;
-
-                    // debug("buyable length: " + to_string(buyable.size()));
-
                     for (auto &a : buyable)
                     {
-                        throwIfTimeout(curMaxDepth);
+                        throwIfTimeout(depth);
                         State newState = s;
                         playAction(s, a, newState);
                         vector<Action> newHistory = history;
                         newHistory.push_back(a);
                         double score = scoreState(newState, newHistory);
-                        childsStates.push_back({newHistory, newState, score});
+                        newQueue.push_back({newHistory, newState, score});
                     }
 
-                    sumChildNodes += childsStates.size();
+                    sumChildNodes += buyable.size();
                     countChildNodes++;
-
-                    sort(childsStates.begin(), childsStates.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
-                        return get<2>(a) > get<2>(b);
-                    });
-
-                    for (int i = 0; i < min(MAX_CHILDS_PER_NODE, (int)childsStates.size()); i++)
-                    {
-                        aux(get<0>(childsStates[i]), get<1>(childsStates[i]), depth - 1);
-                    }
                 }
-            };
+            }
 
-            vector<Action> baseHistory = vector<Action>{};
-            aux(baseHistory, state, curMaxDepth);
+            sort(newQueue.begin(), newQueue.end(), [](tuple<vector<Action>, State, double> a, tuple<vector<Action>, State, double> b) {
+                return get<2>(a) > get<2>(b);
+            });
 
-            sequenceOfActionToState = curSequenceOfActionToState;
+            queue.clear();
+            for (int i = 0; i < min(MAX_CHILDS_PER_NODE, (int)newQueue.size()); i++)
+            {
+                queue.push_back(newQueue[i]);
+            }
         }
     }
     catch (const runtime_error &e)
@@ -450,18 +448,14 @@ void decideAction(State &state)
         // nothing to do
     }
 
-    debug("final sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
+    debug("final sequenceOfActionToState: " + to_string(queue.size()));
 
     debug("average childs by node: " + to_string((double)sumChildNodes / (double)countChildNodes) + ", visited nodes: " + to_string(countVisitedNodes));
 
-    sort(sequenceOfActionToState.begin(), sequenceOfActionToState.end(), [](pair<Action, double> a, pair<Action, double> b) {
-        return get<1>(a) > get<1>(b);
-    });
-
-    if (!sequenceOfActionToState.empty())
+    if (!queue.empty())
     {
-        pair<Action, double> &pickedSequenceToState = sequenceOfActionToState.at(0);
-        Action &firstAction = get<0>(pickedSequenceToState);
+        tuple<vector<Action>, State, double> &pickedSequenceToState = queue.at(0);
+        Action &firstAction = get<0>(pickedSequenceToState)[0];
         if (firstAction.actionType == ActionType::CAST || firstAction.actionType == ActionType::BREW)
         {
             sendBrewCast(firstAction);
