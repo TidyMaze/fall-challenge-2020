@@ -305,7 +305,7 @@ bool atLeastOneInvIsUseful(State &state, Action &cast)
         {
             for (Action &a : state.actions)
             {
-                if (a.actionType == ActionType::BREW && a.deltas[i] < 0 && state.myInventory[i] < (-a.deltas[i]))
+                if ((a.actionType == ActionType::BREW || a.actionType == ActionType::CAST) && a.deltas[i] < 0 && state.myInventory[i] < (-a.deltas[i]))
                 {
                     return true;
                 }
