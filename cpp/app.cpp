@@ -395,8 +395,10 @@ void decideAction(State &state)
         vector<Action> initialHistory = {};
         queue.push_back({initialHistory, state, scoreState(state, initialHistory)});
 
-        for (int depth = 1; !queue.empty(); depth++)
+        bool found = true;
+        for (int depth = 1; !queue.empty() && found; depth++)
         {
+            found = false;
             vector<tuple<vector<Action>, State, double>> newQueue;
             for (tuple<vector<Action>, State, double> &cur : queue)
             {
@@ -425,6 +427,7 @@ void decideAction(State &state)
                         newHistory.push_back(a);
                         double score = scoreState(newState, newHistory);
                         newQueue.push_back({newHistory, newState, score});
+                        found = true;
                     }
 
                     sumChildNodes += buyable.size();
