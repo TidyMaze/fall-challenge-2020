@@ -274,7 +274,9 @@ void getAllValidActions(State &s, vector<Action> &dest)
                 if (canBuy(s, repeatedAction))
                 {
                     dest.push_back(repeatedAction);
-                } else {
+                }
+                else
+                {
                     break;
                 }
             }
@@ -353,12 +355,24 @@ int invSum(int arr[4])
 
 double scoreSide(int score, int inventory[4])
 {
-    return score * 1000 + invSum(inventory);
+    return score * 1000000 + invSum(inventory);
 }
 
-double scoreState(State &s)
+int quickBrewScore(vector<Action> &history)
 {
-    return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory);
+    for (int i = 0; i < history.size(); i++)
+    {
+        if (history[i].actionType == ActionType::BREW)
+        {
+            return -i * 1000;
+        }
+    }
+    return -10 * 1000;
+}
+
+double scoreState(State &s, vector<Action> &history)
+{
+    return scoreSide(s.myScore, s.myInventory) - scoreSide(s.opponentScore, s.opponentInventory) + quickBrewScore(history);
 }
 
 void throwIfTimeout(int curMaxDepth)
@@ -391,7 +405,7 @@ void decideAction(State &state)
 
                 if (!history.empty() && (buyable.empty() || depth == 0))
                 {
-                    curSequenceOfActionToState.push_back(pair{history.at(0), scoreState(s)});
+                    curSequenceOfActionToState.push_back(pair{history.at(0), scoreState(s, history)});
                     // debug("sequenceOfActionToState: " + to_string(sequenceOfActionToState.size()));
                 }
                 else
@@ -407,7 +421,7 @@ void decideAction(State &state)
                         playAction(s, a, newState);
                         vector<Action> newHistory = history;
                         newHistory.push_back(a);
-                        double score = scoreState(newState);
+                        double score = scoreState(newState, newHistory);
                         childsStates.push_back({newHistory, newState, score});
                     }
 
@@ -488,7 +502,8 @@ void playAction(State &s, Action &action, State &newState)
                 break;
             }
         }
-        for(int i=0;i<action.repeatable;i++){
+        for (int i = 0; i < action.repeatable; i++)
+        {
             addInventoryDiff(newState.myInventory, action.deltas);
         }
         break;
